@@ -3,6 +3,8 @@
         "*.pl": "prolog",
         "*.C": "c",
         "*.c": "c",
-        "sdl_image.h": "c"
+        "sdl_image.h": "c",
+        "sdl_ttf.h": "c",
+        "constantes.h": "c"
     }
 }
