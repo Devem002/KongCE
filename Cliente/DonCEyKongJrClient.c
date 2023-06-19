@@ -33,7 +33,7 @@ int main(int argc, char* argv[]) {
         printf("Failed to load music! SDL_mixer Error: %s\n", Mix_GetError());
     }
     // Reducir el volumen de la música 
-    Mix_VolumeMusic(20);
+    Mix_VolumeMusic(15);
 
     Mix_PlayMusic(music, -1);
 
@@ -329,10 +329,27 @@ int main(int argc, char* argv[]) {
                 }
             }
         }
+        // Mover cocodrilos azules hacia abajo
+        for (int i = 0; i < 5; i++) {
+            if (blueCrocodiles[i].active) {
+                blueCrocodiles[i].y += 1;
+                if (blueCrocodiles[i].y >= lianas[blueCrocodiles[i].liana_index].y1) {
+                    blueCrocodiles[i].active = false;
+                }
+            }
+}
 
         // Detectar si Donkey Kong Jr. ha tocado un cocodrilo
         for (int i = 0; i < 5; i++) {
             if (crocodiles[i].active && dk_x >= crocodiles[i].x - 15 && dk_x <= crocodiles[i].x + 25 && dk_y <= crocodiles[i].y && dk_y >= crocodiles[i].y - 50) {
+                // Actualizar estado de daño
+                damage = true;
+            }
+        }
+
+        // Detectar si Donkey Kong Jr. ha tocado un cocodrilo azul
+        for (int i = 0; i < 5; i++) {
+            if (blueCrocodiles[i].active && dk_x >= blueCrocodiles[i].x - 15 && dk_x <= blueCrocodiles[i].x + 25 && dk_y <= blueCrocodiles[i].y && dk_y >= blueCrocodiles[i].y - 50) {
                 // Actualizar estado de daño
                 damage = true;
             }
@@ -388,6 +405,24 @@ int main(int argc, char* argv[]) {
             }
         }
 
+        // Dibujar cocodrilos azules
+        for (int i = 0; i < 5; i++) {
+            if (blueCrocodiles[i].active) {
+                int sprite_bcocox;
+                int sprite_bcocoy;
+                if(crocodiles[i].frame == 0){
+                    sprite_bcocox = 253;
+                    sprite_bcocoy = 55;
+                }else{
+                    sprite_bcocox = 271;
+                    sprite_bcocoy = 55;
+                }
+                
+                SDL_Rect srcrect = {sprite_bcocox, sprite_bcocoy, 16, 16};
+                SDL_Rect dstrect = {blueCrocodiles[i].x -16, blueCrocodiles[i].y -16, 32, 32};
+                SDL_RenderCopy(renderer, spritesheet_texture, &srcrect, &dstrect);
+            }
+        }
 
         // Dibujar frutas
         for (int i = 0; i < 5; i++) {
@@ -535,8 +570,17 @@ int main(int argc, char* argv[]) {
 
         //Se encargar de revisar la victoria de Donkey Kong Jr.
         if(dk_y >= 150 && dk_y <= 260 && dk_x >= 150 && dk_x <= 360) {
-            // Actualizar puntaje
+            // Actualizar puntaje y vidas
             players[turn].score += 1000;
+            players[turn].life +=1;
+
+            //Actualización del texto
+            sprintf(lifeText, "%d", players[turn].life);
+            lifeSurface = TTF_RenderText_Blended(font, lifeText, textColor);
+            lifeTexture = SDL_CreateTextureFromSurface(renderer, lifeSurface);
+            lifeWidth = lifeSurface->w;
+            lifeHeight = lifeSurface->h;
+            SDL_FreeSurface(lifeSurface);
 
             //Reproducir sonido de victoria
             Mix_PauseMusic();
@@ -588,6 +632,13 @@ int main(int argc, char* argv[]) {
         if (current_time - last_frame_time >= frame_duration) {
             dk_frame = (dk_frame +1) %3;
             last_frame_time = current_time;
+        }
+
+        // Generar un cocodrilo azul cada 10 segundos
+        Uint32 current_cocotime = SDL_GetTicks();
+        if (current_cocotime - last_blueCrocodile_time >= blueCrocodile_duration) {
+            generate_blueCrocodiles();
+            last_blueCrocodile_time = current_cocotime;
         }
         
         // Actualizar animación de los cocodrilos

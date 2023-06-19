@@ -141,5 +141,30 @@ void generate_cocodriles(){
     }
 }
 
+//Estructura encargada de los cocodrilos azules
+typedef struct {
+    int x;
+    int y;
+    int liana_index;
+    bool active;
+} BlueCrocodile;
+
+BlueCrocodile blueCrocodiles[5];
+
+//Función encargada de crear los cocodrilos azules de forma aleatoria en las lianas
+void generate_blueCrocodiles(){
+    for (int i = 0; i < 5; i++) {
+        blueCrocodiles[i].liana_index = rand() % (sizeof(lianas) / sizeof(lianas[0]) - 3);
+        blueCrocodiles[i].x = lianas[blueCrocodiles[i].liana_index].x1;
+        blueCrocodiles[i].y = lianas[blueCrocodiles[i].liana_index].y2;
+        blueCrocodiles[i].active = true;
+    }
+}
+
+// Variable para controlar el tiempo entre la generación de cocodrilos azules
+Uint32 last_blueCrocodile_time = 0;
+Uint32 blueCrocodile_duration = 5000;
+
+
 // Variable para el estado de daño de Donkey Kong Jr.
 bool damage = false;
