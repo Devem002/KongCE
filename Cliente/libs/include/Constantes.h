@@ -38,15 +38,21 @@ Line lianas[] = {
     {431 ,191 ,432 ,100}
 };
 
+//Estructura encargada del manejo de jugadores
+typedef struct {
+    int score;
+    int life;
+} Player;
+
+Player players[2];
+
+//Variables encargadas del orden
+int num_players = 0;
+int turn = 0;
+
 // Variables para la posición de Donkey Kong Jr.
 int dk_x = 50;
 int dk_y = 848;
-
-// Variable para la vida de Donkey Kong Jr.
-int life = 3;
-
-// Variable para el puntaje
-int score = 0;
 
 // Variables para la animación de Donkey Kong Jr.
 int dk_frame = 0;

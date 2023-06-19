@@ -33,7 +33,7 @@ int main(int argc, char* argv[]) {
         printf("Failed to load music! SDL_mixer Error: %s\n", Mix_GetError());
     }
     // Reducir el volumen de la música 
-    Mix_VolumeMusic(5);
+    Mix_VolumeMusic(20);
 
     Mix_PlayMusic(music, -1);
 
@@ -71,6 +71,9 @@ int main(int argc, char* argv[]) {
         960,
         SDL_WINDOW_SHOWN
     );
+    //Ventana seleccion de jugadores
+    SDL_Window* auxWindow = SDL_CreateWindow("Ventana Auxiliar", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 300, 200, SDL_WINDOW_SHOWN);
+    SDL_Renderer* auxRenderer = SDL_CreateRenderer(auxWindow, -1, SDL_RENDERER_ACCELERATED);
 
     // Crear renderizador
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, 0);
@@ -95,10 +98,79 @@ int main(int argc, char* argv[]) {
 
     // Establecer color del texto (blanco)
     SDL_Color textColor = {255, 255, 255};
+    
+    //Bucle encargado de relizar la confirmación de si serán 2 o un jugador los que participaran en el juego.
+    bool on = true;
+    while (on) {
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                on = false;
+            }
+            else if (event.type == SDL_MOUSEBUTTONDOWN) {
+                int mouseX, mouseY;
+                SDL_GetMouseState(&mouseX, &mouseY);
+                if (mouseX >= 50 && mouseX <= 150 && mouseY >= 50 && mouseY <= 100) {
+                    num_players = 1;
+                    on = false;
+                }
+                else if (mouseX >= 50 && mouseX <= 150 && mouseY >= 110 && mouseY <= 160) {
+                    num_players = 2;
+                    on = false;
+                }
+            }
+        }
+        SDL_SetRenderDrawColor(auxRenderer, 255, 255, 255, 255);
+        SDL_RenderClear(auxRenderer);
 
+        // Dibujar texto
+        TTF_Font* font = TTF_OpenFont("Fonts/AGENCYB.TTF", 20);
+        SDL_Color color = { 0, 0, 0 };
+        SDL_Surface* surface = TTF_RenderText_Solid(font, "Cuantos jugadores?", color);
+        SDL_Texture* texture = SDL_CreateTextureFromSurface(auxRenderer, surface);
+        SDL_Rect textRect = { 50, 20, surface->w, surface->h };
+        SDL_RenderCopy(auxRenderer, texture, NULL, &textRect);
+
+        // Dibujar botón "1 jugador"
+        SDL_SetRenderDrawColor(auxRenderer, 0, 255, 0, 255);
+        SDL_Rect buttonRect1 = { 50, 50, 100, 50 };
+        SDL_RenderFillRect(auxRenderer, &buttonRect1);
+
+        // Dibujar texto "1"
+        SDL_Surface* surface1 = TTF_RenderText_Solid(font, "1", color);
+        SDL_Texture* texture1 = SDL_CreateTextureFromSurface(auxRenderer, surface1);
+        int textWidth1 = surface1->w;
+        int textHeight1 = surface1->h;
+        SDL_Rect textRect1 = { buttonRect1.x + (buttonRect1.w - textWidth1) / 2, buttonRect1.y + (buttonRect1.h - textHeight1) / 2, textWidth1, textHeight1 };
+        SDL_RenderCopy(auxRenderer, texture1, NULL, &textRect1);
+
+        // Dibujar botón "2 jugadores"
+        SDL_SetRenderDrawColor(auxRenderer, 0, 0, 255, 255);
+        SDL_Rect buttonRect2 = { 50, 110, 100, 50 };
+        SDL_RenderFillRect(auxRenderer, &buttonRect2);
+
+        // Dibujar texto "2"
+        SDL_Surface* surface2 = TTF_RenderText_Solid(font, "2", color);
+        SDL_Texture* texture2 = SDL_CreateTextureFromSurface(auxRenderer, surface2);
+        int textWidth2 = surface2->w;
+        int textHeight2 = surface2->h;
+        SDL_Rect textRect2 = { buttonRect2.x + (buttonRect2.w - textWidth2) / 2, buttonRect2.y + (buttonRect2.h - textHeight2) / 2, textWidth2, textHeight2 };
+        SDL_RenderCopy(auxRenderer, texture2, NULL, &textRect2);
+
+        SDL_RenderPresent(auxRenderer);
+    }
+    SDL_DestroyRenderer(auxRenderer);
+    SDL_DestroyWindow(auxWindow);
+
+    // Crear jugadores
+    for (int i = 0; i < num_players; i++) {
+        players[i].score = 0;
+        players[i].life = 3;
+    }
+    
     // Renderizar texto del puntaje
     char scoreText[64];
-    sprintf(scoreText, "%d", score);
+    sprintf(scoreText, "%d", players[turn].score);
     SDL_Surface *scoreSurface = TTF_RenderText_Blended(font, scoreText, textColor);
     SDL_Texture *scoreTexture = SDL_CreateTextureFromSurface(renderer, scoreSurface);
     int scoreWidth = scoreSurface->w;
@@ -107,19 +179,28 @@ int main(int argc, char* argv[]) {
 
     // Renderizar texto de las vidas
     char lifeText[64];
-    sprintf(lifeText, "%d", life);
+    sprintf(lifeText, "%d", players[turn].life);
     SDL_Surface *lifeSurface = TTF_RenderText_Blended(font, lifeText, textColor);
     SDL_Texture *lifeTexture = SDL_CreateTextureFromSurface(renderer, lifeSurface);
     int lifeWidth = lifeSurface->w;
     int lifeHeight = lifeSurface->h;
     SDL_FreeSurface(lifeSurface);
 
+    // Renderizar texto del jugador que esta jugando
+    char turnText[64];
+    sprintf(turnText, "1");
+    SDL_Surface *turnSurface = TTF_RenderText_Blended(font, turnText, textColor);
+    SDL_Texture *turnTexture = SDL_CreateTextureFromSurface(renderer, turnSurface);
+    int turnWidth = turnSurface->w;
+    int turnHeight = turnSurface->h;
+    SDL_FreeSurface(turnSurface);
+
     //LLamado a generar frutas
     generate_fruits();
 
     //Llamado a generar cocodrilos
     generate_cocodriles();
-    
+
     // Bucle principal del juego
     bool running = true;
     while (running) {
@@ -267,7 +348,7 @@ int main(int argc, char* argv[]) {
                 Mix_PlayChannel(-1, bite_sound, 0);
 
                 // Actualizar puntaje
-                score += 100;
+                players[turn].score += 100;
                 }}
 
         // Limpiar pantalla
@@ -283,6 +364,10 @@ int main(int argc, char* argv[]) {
         // Mostrar texto de las vidas
         SDL_Rect lifeRect = {905, 155, lifeWidth, lifeHeight};
         SDL_RenderCopy(renderer, lifeTexture, NULL, &lifeRect);
+
+        // Mostrar texto del turno del jugador
+        SDL_Rect turnRect = {685, 155, turnWidth, turnHeight};
+        SDL_RenderCopy(renderer, turnTexture, NULL, &turnRect);
 
         // Dibujar cocodrilos
         for (int i = 0; i < 5; i++) {
@@ -316,7 +401,7 @@ int main(int argc, char* argv[]) {
         }
 
         // Dibujar sprite de Donkey Kong Jr. si todavía tiene vida
-        if (life > 0) {
+        if (players[turn].life > 0) {
             int sprite_x, sprite_y;
             if (!dk_moving) {
                 dk_frame = 0;
@@ -381,10 +466,10 @@ int main(int argc, char* argv[]) {
             generate_cocodriles();
 
             // Restar 1 a la vida de Donkey Kong Jr.
-            life -= 1;
+            players[turn].life -= 1;
 
             //Actualización del texto
-            sprintf(lifeText, "%d", life);
+            sprintf(lifeText, "%d", players[turn].life);
             lifeSurface = TTF_RenderText_Blended(font, lifeText, textColor);
             lifeTexture = SDL_CreateTextureFromSurface(renderer, lifeSurface);
             lifeWidth = lifeSurface->w;
@@ -421,21 +506,37 @@ int main(int argc, char* argv[]) {
             dk_jump_start_y = 0;
 
             // Verificar si Donkey Kong Jr. ha perdido todas sus vidas
-            if (life <= 0) {
+            if (players[turn].life <= 0) {
                 // Mostrar ventana emergente con el mensaje "Game Over"
                 char message[64];
-                sprintf(message,"Has perdido todas tus vidas. Tuviste un puntaje de: %d",score);
+                if (turn == 0){
+                    sprintf(message,"Has perdido todas tus vidas. Tuviste un puntaje de: %d, Jugador 1", players[turn].score);
+                }else{
+                    sprintf(message,"Has perdido todas tus vidas. Tuviste un puntaje de: %d, Jugador 2", players[turn].score);
+                }
                 SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Game Over", message, window);
 
                 // Terminar el juego
-                running = false;
+                if((turn == 0 && num_players == 1)||turn == 1){
+                    running = false;
+                }else{
+                    turn = 1;
+                    // Actualización del texto del jugador que esta jugando
+                    sprintf(turnText, "2");
+                    turnSurface = TTF_RenderText_Blended(font, turnText, textColor);
+                    turnTexture = SDL_CreateTextureFromSurface(renderer, turnSurface);
+                    turnWidth = turnSurface->w;
+                    turnHeight = turnSurface->h;
+                    SDL_FreeSurface(turnSurface);
+                }
+                
             }
         }
 
         //Se encargar de revisar la victoria de Donkey Kong Jr.
         if(dk_y >= 150 && dk_y <= 260 && dk_x >= 150 && dk_x <= 360) {
             // Actualizar puntaje
-            score += 1000;
+            players[turn].score += 1000;
 
             //Reproducir sonido de victoria
             Mix_PauseMusic();
@@ -475,7 +576,7 @@ int main(int argc, char* argv[]) {
         }
 
         // Volver a renderizar texto del puntaje
-            sprintf(scoreText, "%d", score);
+            sprintf(scoreText, "%d", players[turn].score);
             scoreSurface = TTF_RenderText_Blended(font, scoreText, textColor);
             scoreTexture = SDL_CreateTextureFromSurface(renderer, scoreSurface);
             scoreWidth = scoreSurface->w;
