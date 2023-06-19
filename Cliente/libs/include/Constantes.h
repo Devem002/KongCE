@@ -1,4 +1,5 @@
 // Cabezera encargada de contener las constantes de DonCEyKongJrClient.c
+
 //Estructura de datos para la identificación de las lianas y plataformas
 typedef struct {
     int x1;
@@ -86,3 +87,53 @@ bool is_on_liana(int dk_x, int dk_y, Line lianas[], int num_lianas) {
     // Si no está en contacto con ninguna liana, devolver false
     return false;
 }
+
+//Estructura encargada de las frutas
+typedef struct {
+    int x;
+    int y;
+    bool active;
+} Fruit;
+
+Fruit fruits[5];
+
+// Generar frutas de manera aleatoria en las coordenadas de las lianas
+void generate_fruits(){
+    for (int i = 0; i < 5; i++) {
+        int liana_index = rand() % (sizeof(lianas) / sizeof(lianas[0]));
+        fruits[i].x = lianas[liana_index].x1;
+        fruits[i].y = rand() % (lianas[liana_index].y1 - lianas[liana_index].y2 + 1) + lianas[liana_index].y2;
+        fruits[i].active = true;
+    }
+}
+
+// Variables para controlar el tiempo entre frames de animación
+Uint32 last_frame_time = 0;
+Uint32 frame_duration = 100;
+
+//Estructura encargada de los cocodrilos
+typedef struct {
+    int x;
+    int y;
+    int liana_index;
+    bool active;
+    bool moving_up;
+    int frame;
+} Crocodile;
+
+Crocodile crocodiles[5];
+
+//Función encargada de crear los cocodrilos de forma aleatoria en las lianas
+void generate_cocodriles(){
+    for (int i = 0; i < 5; i++) {
+        crocodiles[i].liana_index = rand() % (sizeof(lianas) / sizeof(lianas[0]) - 3);
+        crocodiles[i].x = lianas[crocodiles[i].liana_index].x1;
+        crocodiles[i].y = rand() % (lianas[crocodiles[i].liana_index].y1 - lianas[crocodiles[i].liana_index].y2 + 1) + lianas[crocodiles[i].liana_index].y2;
+        crocodiles[i].active = true;
+        crocodiles[i].moving_up = true;
+        crocodiles[i].frame = 0;
+    }
+}
+
+// Variable para el estado de daño de Donkey Kong Jr.
+bool damage = false;

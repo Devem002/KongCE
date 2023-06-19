@@ -8,10 +8,6 @@
 #include <stdio.h>
 #include "Constantes.h"
 
-// Variables para controlar el tiempo entre frames de animación
-Uint32 last_frame_time = 0;
-Uint32 frame_duration = 100;
-
 int main(int argc, char* argv[]) {
     
     // Inicializar SDL
@@ -46,15 +42,24 @@ int main(int argc, char* argv[]) {
     if (win_sound == NULL) {
         printf("Failed to load sound effect! SDL_mixer Error: %s\n", Mix_GetError());
     }
-    // Reducir el volumen del efecto de sonido 
+    // Reducir el volumen del efecto de victoria 
     Mix_VolumeChunk(win_sound, 10);
+
     // Cargar efecto de sonido de derrota
     Mix_Chunk *lose_sound = Mix_LoadWAV("Music/Lose.mp3");
     if (lose_sound == NULL) {
         printf("Failed to load sound effect! SDL_mixer Error: %s\n", Mix_GetError());
     }
-    // Reducir el volumen del efecto de sonido 
+    // Reducir el volumen del efecto de derrota 
     Mix_VolumeChunk(lose_sound, 10);
+
+    // Cargar efecto de sonido de comer
+    Mix_Chunk *bite_sound = Mix_LoadWAV("Music/Bite.mp3");
+    if (lose_sound == NULL) {
+        printf("Failed to load sound effect! SDL_mixer Error: %s\n", Mix_GetError());
+    }
+    // Reducir el volumen del efecto de derrota 
+    Mix_VolumeChunk(bite_sound, 10);
 
 
     // Crear ventana
@@ -109,7 +114,12 @@ int main(int argc, char* argv[]) {
     int lifeHeight = lifeSurface->h;
     SDL_FreeSurface(lifeSurface);
 
+    //LLamado a generar frutas
+    generate_fruits();
 
+    //Llamado a generar cocodrilos
+    generate_cocodriles();
+    
     // Bucle principal del juego
     bool running = true;
     while (running) {
@@ -168,19 +178,19 @@ int main(int argc, char* argv[]) {
                 dk_moving = true;
             }
         }
-        if (state[SDL_SCANCODE_A]) {
+        if (state[SDL_SCANCODE_A] || SDL_JoystickGetButton(joystick, 7)) {
             dk_x -= 1;
             dk_facing_right = false;
             dk_moving = true;
         }
-        if (state[SDL_SCANCODE_S]) {
+        if (state[SDL_SCANCODE_S] || SDL_JoystickGetButton(joystick, 6)) {
             // Bajar liana si Donkey Kong Jr. está en contacto con una liana
             if (is_on_liana(dk_x, dk_y, lianas, sizeof(lianas) / sizeof(lianas[0]))) {
                 dk_y += 2;
                 dk_moving = true;
             }
         }
-        if (state[SDL_SCANCODE_D]) {
+        if (state[SDL_SCANCODE_D] || SDL_JoystickGetButton(joystick, 5)) {
             dk_x += 1;
             dk_facing_right = true;
             dk_moving = true;
@@ -222,6 +232,44 @@ int main(int argc, char* argv[]) {
             dk_jumping = false; 
         }
 
+        // Mover cocodrilos
+        for (int i = 0; i < 5; i++) {
+            if (crocodiles[i].active) {
+                if (crocodiles[i].moving_up) {
+                    crocodiles[i].y -= 1;
+                    if (crocodiles[i].y <= lianas[crocodiles[i].liana_index].y2) {
+                        crocodiles[i].moving_up = false;
+                    }
+                } else {
+                    crocodiles[i].y += 1;
+                    if (crocodiles[i].y >= lianas[crocodiles[i].liana_index].y1) {
+                        crocodiles[i].moving_up = true;
+                    }
+                }
+            }
+        }
+
+        // Detectar si Donkey Kong Jr. ha tocado un cocodrilo
+        for (int i = 0; i < 5; i++) {
+            if (crocodiles[i].active && dk_x >= crocodiles[i].x - 15 && dk_x <= crocodiles[i].x + 25 && dk_y <= crocodiles[i].y && dk_y >= crocodiles[i].y - 50) {
+                // Actualizar estado de daño
+                damage = true;
+            }
+        }
+
+        // Detectar si Donkey Kong Jr. ha tocado una fruta
+        for (int i = 0; i < 5; i++) {
+            if (fruits[i].active && dk_x >= fruits[i].x - 15 && dk_x <= fruits[i].x + 25 && dk_y <= fruits[i].y && dk_y >= fruits[i].y - 50) {
+                // Desactivar la fruta
+                fruits[i].active = false;
+
+                //Reproducir sonido de muerte
+                Mix_PlayChannel(-1, bite_sound, 0);
+
+                // Actualizar puntaje
+                score += 100;
+                }}
+
         // Limpiar pantalla
         SDL_RenderClear(renderer);
 
@@ -235,6 +283,37 @@ int main(int argc, char* argv[]) {
         // Mostrar texto de las vidas
         SDL_Rect lifeRect = {905, 155, lifeWidth, lifeHeight};
         SDL_RenderCopy(renderer, lifeTexture, NULL, &lifeRect);
+
+        // Dibujar cocodrilos
+        for (int i = 0; i < 5; i++) {
+            if (crocodiles[i].active) {
+                int sprite_cocox;
+                int sprite_cocoy;
+                if(crocodiles[i].frame == 0){
+                    sprite_cocox = 145;
+                    sprite_cocoy = 55;
+                }else{
+                    sprite_cocox = 163;
+                    sprite_cocoy = 55;
+                }
+                
+                SDL_Rect srcrect = {sprite_cocox, sprite_cocoy, 16, 16};
+                SDL_Rect dstrect = {crocodiles[i].x -16, crocodiles[i].y -16, 32, 32};
+                SDL_RenderCopy(renderer, spritesheet_texture, &srcrect, &dstrect);
+            }
+        }
+
+
+        // Dibujar frutas
+        for (int i = 0; i < 5; i++) {
+            if (fruits[i].active) {
+                int sprite_fruitx = 1;
+                int sprite_fruity = 73;
+                SDL_Rect srcrect = {sprite_fruitx, sprite_fruity, 16, 16};
+                SDL_Rect dstrect = {fruits[i].x -16, fruits[i].y -16, 32, 32};
+                SDL_RenderCopy(renderer, spritesheet_texture, &srcrect, &dstrect);
+            }
+        }
 
         // Dibujar sprite de Donkey Kong Jr. si todavía tiene vida
         if (life > 0) {
@@ -292,7 +371,15 @@ int main(int argc, char* argv[]) {
     } 
         }
         //Se encargar de revisar la muerte de Donkey Kong Jr.
-        if(dk_y > 900) {
+        if(dk_y > 900 || damage) {
+            damage = false;
+            
+            //Resetear los cocodrilos
+                for (int i = 0; i < 5; i++) {
+            crocodiles[i].active = false;
+            }
+            generate_cocodriles();
+
             // Restar 1 a la vida de Donkey Kong Jr.
             life -= 1;
 
@@ -336,7 +423,9 @@ int main(int argc, char* argv[]) {
             // Verificar si Donkey Kong Jr. ha perdido todas sus vidas
             if (life <= 0) {
                 // Mostrar ventana emergente con el mensaje "Game Over"
-                SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Game Over", "Has perdido todas tus vidas", window);
+                char message[64];
+                sprintf(message,"Has perdido todas tus vidas. Tuviste un puntaje de: %d",score);
+                SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Game Over", message, window);
 
                 // Terminar el juego
                 running = false;
@@ -346,15 +435,7 @@ int main(int argc, char* argv[]) {
         //Se encargar de revisar la victoria de Donkey Kong Jr.
         if(dk_y >= 150 && dk_y <= 260 && dk_x >= 150 && dk_x <= 360) {
             // Actualizar puntaje
-            score += 100;
-
-            // Volver a renderizar texto del puntaje
-            sprintf(scoreText, "%d", score);
-            scoreSurface = TTF_RenderText_Blended(font, scoreText, textColor);
-            scoreTexture = SDL_CreateTextureFromSurface(renderer, scoreSurface);
-            scoreWidth = scoreSurface->w;
-            scoreHeight = scoreSurface->h;
-            SDL_FreeSurface(scoreSurface);
+            score += 1000;
 
             //Reproducir sonido de victoria
             Mix_PauseMusic();
@@ -385,17 +466,34 @@ int main(int argc, char* argv[]) {
             dk_moving = false;
             dk_jumping = false;
             dk_jump_start_y = 0;
+            //LLamado a generar frutas
+            generate_fruits();
 
             // Mostrar ventana emergente con el mensaje "Victoria"
             SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Victoria", "Felicidades, sigue jugando por más puntos", window);
             Mix_ResumeMusic();
         }
+
+        // Volver a renderizar texto del puntaje
+            sprintf(scoreText, "%d", score);
+            scoreSurface = TTF_RenderText_Blended(font, scoreText, textColor);
+            scoreTexture = SDL_CreateTextureFromSurface(renderer, scoreSurface);
+            scoreWidth = scoreSurface->w;
+            scoreHeight = scoreSurface->h;
+            SDL_FreeSurface(scoreSurface);
         
         // Actualizar animación de Donkey Kong Jr.
         Uint32 current_time = SDL_GetTicks();
         if (current_time - last_frame_time >= frame_duration) {
             dk_frame = (dk_frame +1) %3;
             last_frame_time = current_time;
+        }
+        
+        // Actualizar animación de los cocodrilos
+        for (int i = 0; i < 5; i++) {
+            if (crocodiles[i].active) {
+                crocodiles[i].frame = (crocodiles[i].frame + 1) % 2;
+            }
         }
 
         // Presentar en pantalla
@@ -409,8 +507,12 @@ int main(int argc, char* argv[]) {
     Mix_FreeMusic(music);
     Mix_FreeChunk(win_sound);
     Mix_FreeChunk(lose_sound);
+    Mix_FreeChunk(bite_sound);
 
     Mix_Quit();
+
+    // Cerrar joystick
+    SDL_JoystickClose(joystick);
 
 
     // Destruir ventana y cerrar SDL
