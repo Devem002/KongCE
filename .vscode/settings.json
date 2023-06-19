@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "*.pl": "prolog",
+        "*.C": "c",
+        "*.c": "c",
+        "sdl_image.h": "c"
+    }
+}
