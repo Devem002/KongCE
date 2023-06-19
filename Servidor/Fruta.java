@@ -1,14 +1,11 @@
 package Servidor;
 
-// Clase que representa un cocodrilo
-public class Fruta {
-    int liana;
-    int altura;
-    int puntos;
+// Clase que representa una fruta
+public class Fruta extends Elemento {
+    public int puntos;
 
     public Fruta(int liana, int altura, int puntos) {
-        this.liana = liana;
-        this.altura = altura;
+        super(liana, altura);
         this.puntos = puntos;
     }
 }

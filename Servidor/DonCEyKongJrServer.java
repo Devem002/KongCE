@@ -1,3 +1,7 @@
+// cd KONGCE
+// javac Servidor/DonCEyKongJrServer.java
+// java Servidor.DonCEyKongJrServer
+
 package Servidor;
 
 // Importa las clases y paquetes necesarios
@@ -9,15 +13,18 @@ import java.util.Scanner;
 
 // Clase principal que representa el servidor del juego
 public class DonCEyKongJrServer {
-    
-    public static final int NUMERO_LIANAS = 4;
+
+    public static final int NUMERO_LIANAS = 6;
     public static final int ALTURA_MAXIMA_LIANA = 8;
-
-
+    
     public static List<Cocodrilo> cocodrilos;
     public static List<Fruta> frutas;
 
+    private List<Integer> lianasConFruta = new ArrayList<>();
+    private List<Integer> lianasConCocodrilo = new ArrayList<>();
 
+
+    
     public DonCEyKongJrServer() {
         cocodrilos = new ArrayList<>();
         frutas = new ArrayList<>();
@@ -44,35 +51,32 @@ public class DonCEyKongJrServer {
     }
 
     // Método para eliminar una fruta del juego
-    public void eliminarFruta(int liana, int altura) {
+    public void eliminarFruta(int liana) {
         for (int i = 0; i < frutas.size(); i++) {
             Fruta fruta = frutas.get(i);
-            if (fruta.liana == liana && fruta.altura == altura) {
+            if (fruta.liana == liana) {
                 frutas.remove(i);
                 break;
             }
         }
     }
 
-    // Método para  que el administrador elimine una fruta
-    public void eliminarFrutaDesdeConsola(){
+    // Método para que el administrador elimine una fruta
+    public void eliminarFrutaDesdeConsola() {
         Scanner scanner = new Scanner(System.in);
 
         System.out.println("-------------------");
+        System.out.println();
         System.out.println("Ingrese la liana de la cual desea eliminar una fruta:");
         int liana = scanner.nextInt();
 
-        System.out.println("Ingrese la altura donde esta la fruta:");
-        int altura = scanner.nextInt();
-
-        eliminarFruta(liana, altura);
+        eliminarFruta(liana);
 
         int x = 0;
-        if (x == 1){
+        if (x == 1) {
             scanner.close();
         }
     }
-
 
     // Método para verificar si un cocodrilo alcanza a Donkey Kong Jr
     public boolean cocodriloAlcanzaJr() {
@@ -94,16 +98,42 @@ public class DonCEyKongJrServer {
         int liana = random.nextInt(NUMERO_LIANAS) + 1;
         int altura = random.nextInt(ALTURA_MAXIMA_LIANA) + 1;
         int puntos = random.nextInt(10) + 1;
+
+        // Verificar si ya hay una fruta en la liana generada
+        boolean frutaExistente = false;
+        for (Fruta fruta : frutas) {
+            if (fruta.liana == liana) {
+                frutaExistente = true;
+                break;
+            }
+        }
+
+        // Repetir el proceso hasta encontrar una liana sin fruta
+        while (frutaExistente) {
+            liana = random.nextInt(NUMERO_LIANAS) + 1;
+            frutaExistente = false;
+            for (Fruta fruta : frutas) {
+                if (fruta.liana == liana) {
+                    frutaExistente = true;
+                    break;
+                }
+            }
+        }
+
         agregarFruta(liana, altura, puntos);
+        lianasConFruta.add(liana);
     }
 
-    // Método para generar un cocodrilo aleatorio
-    public void generarCocodriloAleatorio() {
+    // Método para generar los cocodrilos rojos al inicio de la partida
+    public void generarCocodrilosRojosIniciales() {
         Random random = new Random();
-        int liana = random.nextInt(NUMERO_LIANAS) + 1;
-        int altura = 1;
-        boolean esRojo = random.nextBoolean();
-        agregarCocodrilo(liana, altura, esRojo);
+        for (int liana = 1; liana <= NUMERO_LIANAS; liana++) {
+            if (random.nextDouble() <= 0.5) {
+                int altura = random.nextInt(DonCEyKongJrServer.ALTURA_MAXIMA_LIANA) + 1;
+                agregarCocodrilo(liana, altura, true);
+                lianasConCocodrilo.add(liana);
+            }
+        }
     }
 
     // Método para agregar que el administrador agregue un cocodrilo
@@ -111,14 +141,25 @@ public class DonCEyKongJrServer {
         Scanner scanner = new Scanner(System.in);
 
         System.out.println("-------------------");
+        System.out.println();
         System.out.println("Ingrese la liana donde desea agregar el cocodrilo:");
         int liana = scanner.nextInt();
 
         System.out.println("Ingrese la altura donde desea agregar el cocodrilo:");
         int altura = scanner.nextInt();
 
-        System.out.println("Ingrese el color del cocodrilo (true: rojo / false: azul):");
-        boolean esRojo = scanner.nextBoolean();
+        System.out.println("Ingrese el color del cocodrilo (r: rojo / a: azul):");
+        String colorInput = scanner.next();
+
+        boolean esRojo;
+        if (colorInput.equalsIgnoreCase("r")) {
+            esRojo = true;
+        } else if (colorInput.equalsIgnoreCase("a")) {
+            esRojo = false;
+        } else {
+            System.out.println("Opción inválida. Se asumirá color azul por defecto.");
+            esRojo = false;
+        }
 
         agregarCocodrilo(liana, altura, esRojo);
         iniciarMovimientoCocodrilos();
@@ -129,10 +170,9 @@ public class DonCEyKongJrServer {
         }
     }
 
-
-
     // Método para iniciar el movimiento de los cocodrilos
     public void iniciarMovimientoCocodrilos() {
+        
         for (Cocodrilo cocodrilo : cocodrilos) {
             // Verificar si el cocodrilo ya se está moviendo
             if (cocodrilo.moviendose) {
@@ -148,6 +188,7 @@ public class DonCEyKongJrServer {
     public void pregunta(){
 
         System.out.println("-------------------");
+        System.out.println();
         System.out.println("ingrese una accion a realizar");
         System.out.println("1. agregar un cocodrilo");
         System.out.println("2. eliminar fruta ");
@@ -158,16 +199,19 @@ public class DonCEyKongJrServer {
     public void datosActuales(){
 
         System.out.println("-------------------");
+        System.out.println();
         System.out.println("Frutas actuales:");
+        System.out.println();
         for (Fruta fruta : frutas) {
             System.out.println("Fruta en liana: " + fruta.liana + ", altura: " + fruta.altura + ", puntos: " + fruta.puntos);
         }
-        System.out.println("cocodrilos actuales:");
+        System.out.println();
+        System.out.println("Cocodrilos actuales:");
+        System.out.println();
         for (Cocodrilo cocodrilo : cocodrilos) {
-            System.out.println("cocodrilo en liana: " + cocodrilo.liana + ", altura: " + cocodrilo.altura + ", color: " + (cocodrilo.esRojo ? "rojo" : "azul"));
+            System.out.println("Cocodrilo en liana: " + cocodrilo.liana + ", altura: " + cocodrilo.altura + ", color: " + (cocodrilo.esRojo ? "rojo" : "azul"));
         }
     }
-
 
     // Método principal para ejecutar el servidor y probar la lógica del juego
     public static void main(String[] args) {
@@ -177,41 +221,48 @@ public class DonCEyKongJrServer {
         
 
         // Agregar ejemplos de cocodrilos y frutas
-        servidor.agregarCocodrilo(2, 5, true);
-        servidor.agregarCocodrilo(1, 5, true);
-        servidor.agregarFruta(3, 3, 5);
+        servidor.generarCocodrilosRojosIniciales();
+        for (int i = 1; i <= NUMERO_LIANAS; i++) {
+            servidor.generarFrutaAleatoria();
+        }
 
         servidor.datosActuales();
 
         // Iniciar movimiento de los cocodrilos
         servidor.iniciarMovimientoCocodrilos();
 
+        // Iniciar generación de cocodrilos azules
+        Thread generadorAzules = new Thread(new GeneradorCocodrilosAzules(servidor));
+        generadorAzules.start();
+
         // Solicitar al administrador agregar un cocodrilo o eliminar fruta
         Scanner scanner = new Scanner(System.in);
         servidor.pregunta();
 
         int accion;
-        do{
+
+        do {
             accion = scanner.nextInt();
-            
-            switch (accion){
+
+            switch (accion) {
                 case 1:
                     servidor.agregarCocodriloDesdeConsola();
                     servidor.datosActuales();
                     servidor.pregunta();
-                    
                     break;
                 case 2:
                     servidor.eliminarFrutaDesdeConsola();
                     servidor.datosActuales();
                     servidor.pregunta();
-                    
+                    break;
+                case 0:
                     break;
                 default:
+                    System.out.println("Entrada inválida. Por favor, ingrese una acción válida.");
+                    servidor.pregunta();
                     break;
             }
         } while (accion != 0);
-
         scanner.close();
     }
 }
